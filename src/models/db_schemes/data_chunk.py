@@ -15,6 +15,7 @@ class DataChunk(BaseModel):
     chunk_metadata: dict
     chunk_order: int = Field(..., gt=0) # greater than 0
     chunk_project_id: ObjectId # connection to project_id
+    chunk_asset_id: ObjectId
 
     # to suppress ObjectId type error
     class Config:

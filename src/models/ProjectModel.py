@@ -8,6 +8,27 @@ class ProjectModel(BaseDataModel):
         super().__init__(db_client=db_client)
         self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
 
+    # This function solves the clash between async and normal function when calling
+    # __init__ and init_collection so using this function we can safely call both
+    @classmethod
+    async def create_instance(cls,db_client: object):
+        instance = cls(db_client=db_client) # creates an object of ProjectModel
+        await instance.init_collection()
+        return instance
+
+    # check on all collections and initialize indexes within collection
+    async def init_collection(self):
+        all_collections = await self.db_client.list_collection_names()
+        if DataBaseEnum.COLLECTION_PROJECT_NAME.value not in all_collections:
+            self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
+            indexes = Project.get_indexes()
+            for index in indexes:
+                await self.collection.create_index(
+                    index["key"],
+                    name = index["name"],
+                    unique = index["unique"],
+                )
+
 # function should be async cause motor uses async functions and we can use await
     async def create_project(self, project: Project):
         # inserting a new project (as dict) in project collection inside DB

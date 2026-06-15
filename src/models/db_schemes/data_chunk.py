@@ -19,3 +19,17 @@ class DataChunk(BaseModel):
     # to suppress ObjectId type error
     class Config:
         arbitrary_types_allowed = True
+
+
+    @classmethod
+    def get_indexes(cls):
+        # initialize an index for faster retrieval
+        return [
+            {
+                "key":[
+                    ("chunk_project_id", 1) # 1: ascending order
+                ],
+                "name": "chunk_project_id_index_1",
+                "unique": False, # multiple chunks share same project_id
+            }
+        ]

@@ -20,3 +20,17 @@ class Project(BaseModel):
     # to suppress ObjectId type error
     class Config:
         arbitrary_types_allowed = True
+
+
+    @classmethod
+    def get_indexes(cls):
+        # initialize an index for faster retrieval
+        return [
+            {
+                "key":[
+                    ("project_id", 1) # 1: ascending order
+                ],
+                "name": "project_id_index_1",
+                "unique": True, # no repeated project_id
+            }
+        ]

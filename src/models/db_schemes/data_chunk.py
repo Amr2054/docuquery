@@ -2,12 +2,14 @@
 Mongodb Scheme for chunks
 """
 
-from pydantic import BaseModel, Field, validator, ValidationError, field_validator
+from pydantic import BaseModel, Field
 from typing import Optional
 from bson.objectid import ObjectId
 
 class DataChunk(BaseModel):
-    _id: Optional[ObjectId]
+    # _id is private so to read the id we use id only as a name
+    # and use alias _id and adapt mongo functions to handle alias
+    id: Optional[ObjectId] = Field(None, alias="_id")
 
     chunk_text: str = Field(..., min_length=1)
     chunk_metadata: dict

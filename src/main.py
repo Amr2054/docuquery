@@ -5,6 +5,7 @@ from helpers.config import get_settings
 
 app = FastAPI()
 
+# adding the db_client to the app on startup
 @app.on_event("startup")
 async def startup_db_client():
     settings = get_settings()

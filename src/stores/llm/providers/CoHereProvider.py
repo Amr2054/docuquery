@@ -1,5 +1,5 @@
 from ..LLMInterface import LLMInterface
-from ..LLMEnums import CoHereEnums, DocumentTypeEnum
+from ..LLMEnums import CoHereEnums, DocumentTypeEnums
 import cohere
 import logging
 
@@ -23,7 +23,7 @@ class CoHereProvider(LLMInterface):
         self.embedding_size = None
 
         self.client = cohere.Client(api_key=self.api_key)
-
+        self.enums = CoHereEnums
         self.logger = logging.getLogger(__name__)
 
     def set_generation_model(self, model_id: str):
@@ -74,7 +74,7 @@ class CoHereProvider(LLMInterface):
             return None
 
         input_type = CoHereEnums.DOCUMENT
-        if document_type == DocumentTypeEnum.QUERY:
+        if document_type == DocumentTypeEnums.QUERY:
             input_type = CoHereEnums.QUERY
 
         response = self.client.embed(

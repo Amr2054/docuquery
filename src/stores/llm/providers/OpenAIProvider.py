@@ -1,3 +1,5 @@
+from typing import Union, List
+
 from ..LLMInterface import LLMInterface
 from ..LLMEnums import OpenAIEnums
 from openai import OpenAI
@@ -69,11 +71,14 @@ class OpenAIProvider(LLMInterface):
 
         return response.choices[0].message.content
 
-    def embed_text(self,text: str, document_type: str=None):
+    def embed_text(self, text: Union[str,List[str]] , document_type: str=None):
 
         if not self.client:
             self.logger.error('OpenAI client not available')
             return None
+
+        if isinstance(text, str):
+            text = [text] # make sure that input data is always a list
 
         if not self.embedding_model_id:
             self.logger.error('OpenAI embedding model not available')
@@ -81,7 +86,7 @@ class OpenAIProvider(LLMInterface):
 
         response = self.client.embeddings.create(
             model=self.embedding_model_id,
-            input=text,
+            input=text, # OpenAI handles type of input automatically
 
         )
 
@@ -89,11 +94,11 @@ class OpenAIProvider(LLMInterface):
             self.logger.error('Error while embedding text with OpenAI')
             return None
 
-        return response.data[0].embedding
+        return [rec.embedding for rec in response.data]
 
     def construct_prompt(self,prompt: str, role: str):
 
         return {
             "role":role,
-            "content":self.process_text(prompt),
+            "content":prompt ,
         }

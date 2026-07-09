@@ -1,16 +1,15 @@
 # DocuQuery — Document Intelligence API
 
-> Upload documents, ask questions, get answers. A production-ready RAG backend built with FastAPI, Qdrant, and MongoDB.
+> Upload documents, ask questions, get answers. A production-ready RAG backend built with FastAPI, Qdrant, and Postgres.
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=for-the-badge&logo=qdrant&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
 ![Cohere](https://img.shields.io/badge/Cohere-39594E?style=for-the-badge&logo=cohere&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white)
 
 ---
 
@@ -36,23 +35,22 @@ Upload → Chunk → Embed → Index → Retrieve → Generate Answer
 - **OpenAI-compatible endpoint** — works with any OpenAI-compatible API URL, including local model servers
 - **Multi-language prompts** — built-in prompt templates in English and Arabic; extensible to other languages
 - **Project isolation** — every upload, chunk, and vector collection is scoped to a `project_id`
-- **Async throughout** — built on FastAPI with async MongoDB (Motor) for non-blocking I/O
-- **Docker-ready** — MongoDB service included in `docker-compose.yml`
+- **Docker-ready** — pgvector service included in `docker-compose.yml`
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| API framework | FastAPI |
-| Database | MongoDB (via Motor async driver) |
-| Vector store | Qdrant (local file-based) |
-| LLM / Embeddings | OpenAI, Cohere |
-| Document parsing | PyMuPDF (PDF), LangChain TextLoader (TXT) |
-| Text splitting | LangChain RecursiveCharacterTextSplitter |
-| Config management | Pydantic Settings |
-| Containerization | Docker Compose |
+| Layer             | Technology                                |
+|-------------------|-------------------------------------------|
+| API framework     | FastAPI                                   |
+| Database          | Postgres                                  |
+| Vector store      | Qdrant or pgvector (local file-based)     |
+| LLM / Embeddings  | OpenAI, Cohere                            |
+| Document parsing  | PyMuPDF (PDF), LangChain TextLoader (TXT) |
+| Text splitting    | LangChain RecursiveCharacterTextSplitter  |
+| Config management | Pydantic Settings                         |
+| Containerization  | Docker Compose                            |
 
 ---
 
@@ -70,7 +68,8 @@ Upload → Chunk → Embed → Index → Retrieve → Generate Answer
 └──────────┬──────────────────────────┬────────────────┘
            │                          │
     ┌──────▼──────┐           ┌───────▼───────┐
-    │   MongoDB   │           │     Qdrant    │
+    │   Postgres  │           │   Qdrant or   │
+    │             │           │    pgvector   │
     │  Projects   │           │ Vector Store  │
     │  Assets     │           │ (per-project  │
     │  Chunks     │           │  collections) │
@@ -110,7 +109,7 @@ Upload a file to a project. Creates the project automatically if it doesn't exis
 ---
 
 #### `POST /data/process/{project_id}`
-Process uploaded files into text chunks and store them in MongoDB.
+Process uploaded files into text chunks and store them in Postgres database.
 
 **Request Body:**
 ```json
@@ -143,7 +142,7 @@ Process uploaded files into text chunks and store them in MongoDB.
 ### NLP Endpoints
 
 #### `POST /nlp/index/push/{project_id}`
-Embed all MongoDB chunks and push them into the Qdrant vector store.
+Embed all Postgres chunks and push them into the Qdrant vector store.
 
 **Request Body:**
 ```json
@@ -243,12 +242,12 @@ git clone https://github.com/Amr2054/docuquery.git
 cd docuquery
 ```
 
-### 2. Start MongoDB with Docker
+### 2. Start pgvector with Docker
 
 ```bash
 cd docker
 cp .env.example .env
-# Fill in MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PASSWORD
+# Fill in POSTGRES_USERNAME and POSTGRES_PASSWORD
 docker compose up -d
 cd ..
 ```
@@ -268,7 +267,12 @@ cp .env.example .env
 
 Open `.env` and fill in your values
 
-### 5. Run the server
+### 5. Run Alembic Migration
+```bash
+$ alembic upgrade head
+```
+
+### 6. Run the server
 
 ```bash
 fastapi dev main.py --host 0.0.0.0 --port 5000
@@ -284,7 +288,7 @@ Here's the standard sequence to go from a raw document to a question-answered re
 
 ```
 1. POST /data/upload/{project_id}         → upload your file
-2. POST /data/process/{project_id}        → chunk the file and store in MongoDB
+2. POST /data/process/{project_id}        → chunk the file and store in Postgres
 3. POST /nlp/index/push/{project_id}      → embed chunks and push to Qdrant
 4. POST /nlp/index/answer/{project_id}    → ask a question, get an answer
 ```
@@ -298,7 +302,7 @@ You only need to repeat step 1–3 when you add new documents. Step 4 can be cal
 ```
 .
 ├── docker/
-│   ├── docker-compose.yml        # MongoDB service
+│   ├── docker-compose.yml        # pgvector service
 │   └── .env.example
 └── src/
     ├── main.py                   # App entry point, startup/shutdown lifecycle
@@ -316,7 +320,7 @@ You only need to repeat step 1–3 when you add new documents. Step 4 can be cal
     │   ├── NLPController.py      # Vector DB ops & RAG logic
     │   └── ProjectController.py  # Project directory management
     ├── models/
-    │   ├── db_schemes/           # MongoDB Pydantic models (Project, Asset, Chunk)
+    │   ├── db_schemes/           # Postgres Pydantic models (Project, Asset, Chunk)
     │   └── enums/                # Enums for asset types, processing, responses
     ├── stores/
     │   ├── llm/
